@@ -12,8 +12,8 @@ class _Directories:
         
         self.dir_config = self.root_dir / "config"
         self.dir_data = self.root_dir / "data"
-        
         self.dir_project = self.root_dir / "src"
+        
         
         
         for dir_path in vars(self).values():
