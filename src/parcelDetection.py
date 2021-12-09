@@ -13,6 +13,8 @@ import tensorflow as tf
 from src.config.config import get_config
 from src.constants import *
 from src.config.directories import directories as dirs
+from src.parcelTracker import ParcelTracker
+from src.utils.objectDetectionViz import *
 
 
 
@@ -86,22 +88,6 @@ def loadImageServer(imageQueue, incomingQ):
                 time.sleep(0.250)
                 
                 
-def parcelDetection():
-    
-    # init 
-    imageQ = Queue()
-    incomingQ = Queue()
-    
-    liveDetectionProcess = Thread(target=parcelDetectionWorker, args=(imageQ,incomingQ,))
-    liveDetectionProcess.start()
-
-    time.sleep(20)
-    
-    loadImageServer(imageQ, incomingQ)
-
-    return
-
-
 def draw_bounding_box_on_image(objects):
     
     for i in range(len(objects)):
@@ -118,17 +104,33 @@ def drawParcel_onImageArray(parcels):
         drawParcelOnImageArray(parcel, image, 
                                displayString = True)
     return
+                
+                
+def parcelDetection():
+    
+    # init 
+    imageQ = Queue()
+    incomingQ = Queue()
+    
+    liveDetectionProcess = Thread(target=parcelDetectionWorker, args=(imageQ,incomingQ,))
+    liveDetectionProcess.start()
+
+    time.sleep(20)
+    
+    loadImageServer(imageQ, incomingQ)
+
+    return
 
 
 def parcelDetectionWorker(imageQueue, incomingQ):
     
-    configFile = './etc/dpd175/ParcelTrackerDpd175_ilot1.ini'
-    parcelTracker = ParcelTracker(configFile, 'ParcelTracker1')
-    parcelTracker2 = ParcelTracker(configFile, 'ParcelTracker2')
+    configFile =  dirs.dir_config / C_PARCELTRACKER
+    parcelTracker = ParcelTracker(configFile, C_TRACKER1)
+    parcelTracker2 = ParcelTracker(configFile, C_TRACKER2)
 
     displayDetection = True
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('F:/CARS_BigOne/Acqui26082020/test.avi',fourcc, 8, (int(1456),544))
+    out = cv2.VideoWriter('F:/CARS_BigOne/Acqui26082020/test.avi', fourcc, 8, (int(1456),544))
     ite = 0
     debugJson = False
 
