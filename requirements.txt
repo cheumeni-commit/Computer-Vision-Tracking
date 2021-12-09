@@ -1,0 +1,11 @@
+Jinja2
+flask
+requests
+pillow
+scipy
+requests-futures
+opencv-python==3.4.9.31
+numpy==1.17.2
+pandas==1.2.3
+scikit-learn==0.24.1
+tensorflow-gpu==1.14.0
