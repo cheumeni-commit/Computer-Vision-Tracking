@@ -2,6 +2,7 @@
 
 from multiprocessing import Queue
 from threading import Thread
+from collections import defaultdict
 import time
 
 from copy import deepcopy
@@ -15,6 +16,8 @@ from src.constants import *
 from src.config.directories import directories as dirs
 from src.parcelTracker import ParcelTracker
 from src.utils.objectDetectionViz import *
+from src.parcels.parcel import Parcel
+from src.parcels.parcelIdManager import ParcelIdManager
 
 
 
@@ -24,8 +27,8 @@ if int(tf.__version__.split('.')[1]) < 4:
     
 def update_parcel_info():
     
-    parcelColor  = get_config.color[np.random.randint(0, 3)]
-    barcode      = get_config.barcode[np.random.randint(0, 3)]
+    parcelColor  = get_config.color[np.random.randint(0, len(get_config.color))]
+    barcode      = get_config.barcode[np.random.randint(0, len(get_config.barcode))]
     destBay      = ""
     postCode     = barcode
     parcelID, timestamp = PIdM.parcelIdGenerator()
@@ -59,33 +62,45 @@ def newParcel(PIdM):
     return parcel
 
 
+def image_data(image_dir):
+    
+    data_image = defaultdict(list)
+    for i in np.arange(len(image_dir)):
+        data_image[i] = os.listdir(dirs.dir_raw / image_dir[i])
+        
+    return data_image
+
+
+def load_image(**kwargs):
+    
+    nb_min_image = np.min([len(value) for key, value in data_image.items()])
+    
+    for i in range(nb_min_image-1):
+        image_raw1 = dirs.dir_raw / image_dir[0] / data_image[0][i]
+        image_raw2 = dirs.dir_raw / image_dir[1] / data_image[1][i]
+                    
+        if np.random.randint(0, 5) == 0:
+            print('New incoming parcel')
+            incomingQ.put(newParcel(PIdM))
+            
+        if 'jpg' in image_raw1 and 'jpg' in image_raw2:
+            imageQueue.put([image_raw1, image_raw2])
+        time.sleep(0.250)
+
+
 def loadImageServer(imageQueue, incomingQ): 
     
-    root =  dirs
-    dirlist = os.listdir(dirs.dir_data)
+    dirlist = os.listdir(dirs.dir_raw)
     PIdM = ParcelIdManager(C_UOOO)
     
-    for j in range(0,len(dirlist)-1,2):
-
-        imRoot = root + dirlist[j] +'/'
-        imRoot2 = root + dirlist[j+1] + '/'
-
-        images = os.listdir(imRoot)
-        images2 = os.listdir(imRoot2)
-        #if j > 500:<
-        #    break
-        #print(imRoot)
-        for i in range(min(len(images) - 1, len(images2) - 1)):
-            if i > 0 and i+1 < len(images2):
-                image = imRoot+ images[i]
-                image2 = imRoot2+ images2[i+1]
-                if np.random.randint(0,15) == 0:
-                    print('New incoming parcel')
-                    incomingQ.put(newParcel(PIdM))
-                print(images[i])
-                if 'jpg' in image and 'jpg' in image2:
-                    imageQueue.put([image, image2])
-                time.sleep(0.250)
+    image_dir = sorted([dirlist[i] for i in range(1, len(dirlist))])
+    
+    data_image = image_data(image_dir)
+    
+    data = {'imageQueue': imageQueue, 'incomingQ':incomingQ,
+           'data_image': data_image, 'image_dir':image_dir}
+ 
+    load_image(**data)
                 
                 
 def draw_bounding_box_on_image(objects):
@@ -95,7 +110,7 @@ def draw_bounding_box_on_image(objects):
         draw_bounding_box_on_image_array(image, ymin, xmin, 
                                          ymax, xmax, 'red',
                                          3, '', True)
-        return
+        return None
     
     
 def drawParcel_onImageArray(parcels):
@@ -103,12 +118,11 @@ def drawParcel_onImageArray(parcels):
     for parcel in parcels:
         drawParcelOnImageArray(parcel, image, 
                                displayString = True)
-    return
+    return None
                 
                 
 def parcelDetection():
     
-    # init 
     imageQ = Queue()
     incomingQ = Queue()
     
@@ -119,76 +133,80 @@ def parcelDetection():
     
     loadImageServer(imageQ, incomingQ)
 
-    return
+    return None
+
+
+def imageStream(imageQueue):
+    
+    imageStream = imageQueue.get()
+    
+    image_cam1 = cv2.imread(imageStream[0])
+    image_cam2 = cv2.imread(imageStream[1])
+    
+    return {'image_cam1':image_cam1,
+            'image_cam2':image_cam2}
+
+
+def tracker(parcelTracker, dataStream, incParcel, num_cam):
+    
+    parcels, objects, numObj = parcelTracker.update(dataStream, [incParcel], num_cam)
+
+    image_rgb1 = cv2.cvtColor(dataStream, cv2.COLOR_BGR2RGB)
+    
+    draw_bounding_box(objects)
+    drawParcel_onImageArray(parcels)
+
+    image_bgr1 = cv2.cvtColor(image_rgb1, cv2.COLOR_RGB2BGR)
+    
+    return {'parcels':parcels, 'objects':objects,
+            'numObj':numObj, 'image_bgr1':image_bgr1}
+    
 
 
 def parcelDetectionWorker(imageQueue, incomingQ):
     
     configFile =  dirs.dir_config / C_PARCELTRACKER
-    parcelTracker = ParcelTracker(configFile, C_TRACKER1)
+    parcelTracker1 = ParcelTracker(configFile, C_TRACKER1)
     parcelTracker2 = ParcelTracker(configFile, C_TRACKER2)
 
     displayDetection = True
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('F:/CARS_BigOne/Acqui26082020/test.avi', fourcc, 8, (int(1456),544))
+    out = cv2.VideoWriter(dirs.dir_video / 'test.avi',\
+                          fourcc, 8,(int(1456),544))
     ite = 0
     debugJson = False
 
-    counters = [[],[], [], []]
+    counters = [[] for _ in range(4)]
 
     while True:
         
-        imageStream = imageQueue.get()
-
-        image_cam1 = cv2.imread(imageStream[0])
-        image_cam2 = cv2.imread(imageStream[1])
+        dataStream = imageStream(imageQueue)
         
         incParcel = None 
-        
         while incomingQ.empty() == False:
               incParcel = incomingQ.get()
                 
-        # tracker 1
-        parcels, objects, numObj = parcelTracker.update(image_cam1, [incParcel], 1)
-
-        image_rgb1 = cv2.cvtColor(image_cam1, cv2.COLOR_BGR2RGB)
-        
-        draw_bounding_box(objects)
-            
-        drawParcel_onImageArray(parcels)
-            
-        image_bgr1 = cv2.cvtColor(image_rgb1, cv2.COLOR_RGB2BGR)
+        #tracker 1
+        dataTracker_1 = tracker(parcelTracker1, dataStream['image_cam1'], incParcel, 1)
+        parcelsCopy = deepcopy(dataTracker_1['parcels'])
         
         # tracker 2
-        parcelsCopy = deepcopy(parcels)
-
-        parcels2, objects, numObj = parcelTracker2.update(image_cam2, parcelsCopy, 2)
-        
-        image_rgb2 = cv2.cvtColor(image_cam2, cv2.COLOR_BGR2RGB)
-        
-        draw_bounding_box_on_image(objects)
-        
-        drawParcel_onImageArray(parcels2)
-            
-        image_bgr2 = cv2.cvtColor(image_rgb2, cv2.COLOR_RGB2BGR) 
+        dataTracker_2 = tracker(parcelTracker2, dataStream['image_cam2'], parcelsCopy, 2)
         
         # Affichage des images tracker 1&2
-        imgout = stackImages(1, [[image, image2]])
+        imgout = stackImages(1, [[dataStream['image_cam1'], dataStream['image_cam2']]])
         imgout = cv2.resize(imgout, (int(imgout.shape[1]/2),int(imgout.shape[0]/2)))
+        # save frames
         out.write(imgout) 
-        
+        # show frames
         cv2.imshow('Parcel detection', imgout)
-        #cv2.waitKey(0)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         ite += 1
 
-        parcelCount(counters, parcels, parcels2)
-        print('-------')
-        print('Entrant : {} / Sortant cam 1 : {} / Sortant cam 2 :                                                         {}'.format(len(counters[0]),len(counters[3]),len(counters[1])))
     vidcap.release()
     out.release()
-    return 
+    return None
 
 
 def stackImages(scale, imgArray):
