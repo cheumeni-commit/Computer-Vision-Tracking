@@ -190,7 +190,7 @@ class ParcelTracker():
                                         if (parcel.isOutcoming and parcel.isExiting) and 
                                        parcel.xPosition[1] > self.trackerSpace.xMinLimit)
 
-            self.____updateRelativeBox(filteredIncomingParcels)
+            self.__updateRelativeBox(filteredIncomingParcels)
             
     
     def __fakeParcel(self, numObj, objects):

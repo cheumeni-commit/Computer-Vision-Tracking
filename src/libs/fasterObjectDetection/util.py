@@ -60,7 +60,7 @@ def load_labelmap(path):
   Returns:
     a dictionnary 
   """
-  with open(link, "r") as fp:
+  with open(path, "r") as fp:
     label_map = json.loads(fp.read())
     
   return label_map
