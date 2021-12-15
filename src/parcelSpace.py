@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from src.parcel import parcel
+from src.parcels.parcel import Parcel
 import configparser as cfg
 import os
 import traceback
@@ -7,8 +7,8 @@ import traceback
 import cv2
 import numpy as np
 
-from object_detector.ObjectDetector import ObjectDetector
-from tools_scripts.parcelTools import draw_bounding_box_on_image_array
+#from object_detector.ObjectDetector import ObjectDetector
+from src.utils.utils import draw_bounding_box_on_image_array
 
 
 class TrackerSpace():

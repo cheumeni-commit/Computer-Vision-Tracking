@@ -25,17 +25,17 @@ if int(tf.__version__.split('.')[1]) < 4:
     raise ImportError('Please upgrade your tensorflow installation to v1.4.* or later!')
     
     
-def update_parcel_info():
+def update_parcel_info(PIdM):
     
-    parcelColor  = get_config.color[np.random.randint(0, len(get_config.color))]
-    barcode      = get_config.barcode[np.random.randint(0, len(get_config.barcode))]
+    parcelColor  = get_config('str').color[np.random.randint(0, 3)]
+    barcode      = get_config('str').barcode[np.random.randint(0, 3)]
     destBay      = ""
     postCode     = barcode
     parcelID, timestamp = PIdM.parcelIdGenerator()
     
-    for segBay in get_config.confBay[C_BAY]:
-        destBay = get_config.confBay[C_POSTCODE]\
-                  [get_config.confBay[C_BAY].index(segBay)]
+    for segBay in get_config('str').confBay[C_BAY]:
+        destBay = get_config('str').confBay[C_POSTCODE]\
+                  [get_config('str').confBay[C_BAY].index(segBay)]
        
             
     return {C_PARCEL_COLOR: parcelColor, 
@@ -48,7 +48,7 @@ def update_parcel_info():
 
 def newParcel(PIdM):
     
-    parcelData = update_parcel_info()
+    parcelData = update_parcel_info(PIdM)
     
     parcel = Parcel(parcelData[C_PARCELID], parcelData[C_PARCEL_COLOR], 
                     parcelData[C_TIMESTAMP], [0,0,0,0], [0,0,0,0], 
@@ -71,20 +71,20 @@ def image_data(image_dir):
     return data_image
 
 
-def load_image(**kwargs):
+def load_image(PIdM, **kwargs):
     
-    nb_min_image = np.min([len(value) for key, value in data_image.items()])
+    nb_min_image = np.min([len(value) for key, value in kwargs['data_image'].items()])
     
     for i in range(nb_min_image-1):
-        image_raw1 = dirs.dir_raw / image_dir[0] / data_image[0][i]
-        image_raw2 = dirs.dir_raw / image_dir[1] / data_image[1][i]
+        image_raw1 = dirs.dir_raw / kwargs['image_dir'][0] / kwargs['data_image'][0][i]
+        image_raw2 = dirs.dir_raw / kwargs['image_dir'][1] / kwargs['data_image'][1][i]
                     
         if np.random.randint(0, 5) == 0:
             print('New incoming parcel')
-            incomingQ.put(newParcel(PIdM))
+            kwargs['incomingQ'].put(newParcel(PIdM))
             
-        if 'jpg' in image_raw1 and 'jpg' in image_raw2:
-            imageQueue.put([image_raw1, image_raw2])
+        if 'jpg' in kwargs['data_image'][0][i] and 'jpg' in kwargs['data_image'][1][i]:
+            kwargs['imageQueue'].put([image_raw1, image_raw2])
         time.sleep(0.250)
 
 
@@ -100,7 +100,7 @@ def loadImageServer(imageQueue, incomingQ):
     data = {'imageQueue': imageQueue, 'incomingQ':incomingQ,
            'data_image': data_image, 'image_dir':image_dir}
  
-    load_image(**data)
+    load_image(PIdM, **data)
                 
                 
 def draw_bounding_box_on_image(objects):
@@ -149,12 +149,12 @@ def imageStream(imageQueue):
 
 def tracker(parcelTracker, dataStream, incParcel, num_cam):
     
-    parcels, objects, numObj = parcelTracker.update(dataStream, [incParcel], num_cam)
+    data = parcelTracker.update(dataStream, [incParcel], num_cam)
 
     image_rgb1 = cv2.cvtColor(dataStream, cv2.COLOR_BGR2RGB)
     
-    draw_bounding_box(objects)
-    drawParcel_onImageArray(parcels)
+    draw_bounding_box(data['objects'])
+    drawParcel_onImageArray(data['parcels'])
 
     image_bgr1 = cv2.cvtColor(image_rgb1, cv2.COLOR_RGB2BGR)
     
@@ -188,6 +188,7 @@ def parcelDetectionWorker(imageQueue, incomingQ):
                 
         #tracker 1
         dataTracker_1 = tracker(parcelTracker1, dataStream['image_cam1'], incParcel, 1)
+        
         parcelsCopy = deepcopy(dataTracker_1['parcels'])
         
         # tracker 2

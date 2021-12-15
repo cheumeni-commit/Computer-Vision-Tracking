@@ -1,6 +1,7 @@
 
-from src.config.config import get_config
+from src.parcelDetection import parcelDetection
 
 if __name__ == '__main__':
    
-   print(get_config("env").confBay)
+   #print(get_config("env").confBay)
+    parcelDetection()

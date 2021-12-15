@@ -11,15 +11,17 @@ import sys
 import os
 import numpy as np
 
-from src.libs.features.featureExtractor import setParcelsWidthRef
+from src.config.directories import directories as dirs
+from src.libs.features.featuresExtractor import setParcelsWidthRef
 from src.libs.features.heightEstimator import heightEstimator
 from src.libs.features.detection import detectAndFilterParcels
 from src.libs.vision.parcelAssociator import ParcelAssociator
 from src.libs.vision.detectionTracker import DetectionTracker
-from src.libs.vision.Peer2peerTracker import Peer2peerTracker
+from src.libs.motion.peer2peerTracker import Peer2peerTracker
 from src.parcelSpace import TrackerSpace
-from src.parcels.parcel import parcel
+from src.parcels.parcel import Parcel
 from src.parcels.parcelIdManager import ParcelIdManager
+
 
 from src.libs.fasterObjectDetection.detector import ObjectDetector
 
@@ -65,8 +67,8 @@ class ParcelTracker():
         self.logger = logger
         self._loadConfig(configFile, trackerType)
         
-        self.parcelDetector = ObjectDetector(self.PATH_TO_CKPT, 
-                                             self.PATH_TO_LABELS, self.NUM_CLASSES,
+        self.parcelDetector = ObjectDetector(dirs.dir_model / self.PATH_TO_CKPT, 
+                                             dirs.dir_labels / self.PATH_TO_LABELS,
                                              self.detectionThreshold, self.gpuNum,
                                              self.gpuMemoryFraction)
 
@@ -120,7 +122,6 @@ class ParcelTracker():
             
             self.PATH_TO_CKPT =  config.get(trackerType, 'PATH_TO_CKPT')
             self.PATH_TO_LABELS =  config.get(trackerType, 'PATH_TO_LABELS')
-            self.NUM_CLASSES =  config.getint(trackerType, 'NUM_CLASSES')
             self.gpuNum =  config.get(trackerType, 'gpuNum')
             self.gpuMemoryFraction =  config.getfloat(trackerType, 'gpuMemoryFraction')
             self.detectionThreshold =  config.getfloat(trackerType, 'detectionThreshold')
@@ -148,22 +149,10 @@ class ParcelTracker():
             if parcel.parcelID == parcelID:
                 return parcel
             
-
-    def _filterIncomingParcels(self, incomingParcels):
-        """
-        Filtre les paquets provenant de l'unité précédente en ne gardant que 
-        les paquets à venir (isOutcoming==True).
-
-        Args:
-            incomingParcels: Parcels venant de l'unité précédente.
-
-        """
-        if incomingParcels != [None]:
-            filteredIncomingParcels = [parcel for parcel in incomingParcels 
-                                        if (parcel.isOutcoming and parcel.isExiting) and 
-                                       parcel.xPosition[1] > self.trackerSpace.xMinLimit]
-
-            for incomingParcel in filteredIncomingParcels:
+            
+    def __updateRelativeBox(self, filteredIncomingParcels):
+        
+        for incomingParcel in filteredIncomingParcels:
                 parcelsID = [parcel.parcelID for parcel in self.incomingParcels] \
                              + [parcel.parcelID for parcel in self.trackedParcels]
                 
@@ -185,8 +174,36 @@ class ParcelTracker():
                     self.incomingParcels[-1].isExiting = False
                     self.incomingParcels[-1].isTracked = False
                     self.incomingParcels[-1].isInterpolated = True
-                        
         
+
+    def _filterIncomingParcels(self, incomingParcels):
+        """
+        Filtre les paquets provenant de l'unité précédente en ne gardant que 
+        les paquets à venir (isOutcoming==True).
+
+        Args:
+            incomingParcels: Parcels venant de l'unité précédente.
+
+        """
+        if incomingParcels != [None]:
+            filteredIncomingParcels = (parcel for parcel in incomingParcels 
+                                        if (parcel.isOutcoming and parcel.isExiting) and 
+                                       parcel.xPosition[1] > self.trackerSpace.xMinLimit)
+
+            self.____updateRelativeBox(filteredIncomingParcels)
+            
+    
+    def __fakeParcel(self, numObj, objects):
+        
+        self.parcelInfo = self.newParcel()
+        
+        for i in range(numObj):
+            self.fakeParcels["parcelID"] = self.PIdM.parcelIdGenerator()[0]
+            self.fakeParcels["NR"] = str(objects[i][1])
+            self.fakeParcels["bbox"] = objects[i][2]
+            self.parcelInfo["fakeParcel"].append(self.fakeParcels)
+            
+            
     def _manageIncomingAndNewParcels(self, numObj, objects, unassociateDetections):
         """
         Gère les paquets entrants nouveaux ou provenant de l'unité précédente.
@@ -206,22 +223,14 @@ class ParcelTracker():
         """
         # TODO gérer les incomings parcel avec timeout, faire la vérif de taille suivant unité 0
 
-        self.parcelInfo = self.newParcel()
-        
-        for i in range(numObj):
-            self.fakeParcels["parcelID"] = self.PIdM.parcelIdGenerator()[0]
-            self.fakeParcels["NR"] = str(objects[i][1])
-            self.fakeParcels["bbox"] = objects[i][2]
-            self.parcelInfo["fakeParcel"].append(self.fakeParcels)
+        self.__fakeParcel(self, numObj, objects)
         
         if len(self.incomingParcels) != 0:
-            unassociatedObjects = []
-            for i in range(numObj):
-                if i in unassociateDetections:
-                    unassociatedObjects.append(objects[i])
+            unassociatedObjects = [objects[i] for i in range(numObj)
+                                   if i in unassociateDetections]
                     
-            unassociateDetections2 = self.PA.associateWithIOU(self.incomingParcels,\
-                                                              len(unassociatedObjects),\ 
+            unassociateDetections2 = self.PA.associateWithIOU(self.incomingParcels,
+                                                              len(unassociatedObjects), 
                                                                unassociatedObjects)
 
             for i in range(len(self.incomingParcels) - 1, -1, -1):
@@ -230,11 +239,13 @@ class ParcelTracker():
                         self.trackedParcels.append(self.incomingParcels.pop(i))
                         self.trackedParcels[-1].isOutcoming = False
                         self.trackedParcels[-1].lastSeenOnCameraID = self.unitName
-                    elif (self.incomingParcels[i].numberOfTimesUndetected > self.numberOfTimeUndedectedThreshold) or (
+                        
+                    elif (self.incomingParcels[i].numberOfTimesUndetected >                                                             self.numberOfTimeUndedectedThreshold) or (
                         self.incomingParcels[i].xPosition[0] > self.trackerSpace.xMinLimit):
                         self.trackedParcels.append(self.incomingParcels.pop(i))
                         self.trackedParcels[-1].isOutcoming = False
                         
+            # gestion parcel cam1        
             for j in range(len(self.incomingParcels)-1, -1, -1):
                 if 'U0' in self.incomingParcels[j].lastSeenOnCameraID:
                     timestamp = datetime.datetime.now()
@@ -243,10 +254,12 @@ class ParcelTracker():
                         if self.logger != None:
                             self.logger.info("Ignoring for too much elapsing time : "+ \
                                              self.incomingParcels[j].parcelID)
-                        print("Ignoring for too much elapsing time : "+  self.incomingParcels[j].parcelID)
+                        print("Ignoring for too much elapsing time : "+self.incomingParcels[j].parcelID)
                         self.incomingParcels.pop(j)
+                        
+            # Association des colis non tracker          
             for i in range(min(len(unassociateDetections2), len(self.incomingParcels))):
-                resBoolean, area = \              self.trackerSpace.isInPrimeAssociationArea(unassociatedObjects[unassociateDetections2[i]][2])
+                resBoolean, area = self.trackerSpace.isInPrimeAssociationArea(unassociatedObjects[unassociateDetections2[i]][2])
                 if resBoolean:
                     for j in range(len(self.incomingParcels)):
                         if self.incomingParcels[j].lastSeenOnCameraID == area:
@@ -259,6 +272,7 @@ class ParcelTracker():
                                     self.trackedParcels[-1].height = self.trackedParcels[-1].dimensionInit[2]
                                 else:
                                     self.trackedParcels[-1].height = self.defaultHeight
+                                    
                             self.trackedParcels[-1].isOutcoming = False
                             self.trackedParcels[-1].relativeBox = unassociatedObjects[unassociateDetections2[i]][2]
                             self.trackedParcels[-1].nextRelativeBox = unassociatedObjects[unassociateDetections2[i]][2]
@@ -307,6 +321,7 @@ class ParcelTracker():
                 print("Removing for overtaking numberOfTimeUndedectedThreshold : "+  self.trackedParcels[i].parcelID)
                 removedParcels.append(self.trackedParcels.pop(i))
                 removedParcels[-1].isRemoved = True
+                
             elif self.trackedParcels[i].numberOfTimesUndetected > self.numberOfTimeUndedectedThresholdPicked:
                 if self.trackedParcels[i].isPickable:
                     xmin, xmax = self.trackedParcels[i].xPosition
@@ -321,12 +336,13 @@ class ParcelTracker():
         for i in range(len(self.trackedParcels) - 1, -1, -1):
             xminLim, xmaxLim = self.trackedParcels[i].destinationPosition
             if self.trackedParcels[i].xPosition[1] >= self.xLimitParcel:
-               if self.logger != None:
-                   self.logger.info("Parcel final exiting : "+  self.trackedParcels[i].parcelID)
-               print("Parcel final exiting : "+  self.trackedParcels[i].parcelID)
-               exitingParcels.append(self.trackedParcels.pop(i))
-               exitingParcels[-1].isOutcoming = False
-               exitingParcels[-1].isExiting = True
+                if self.logger != None:
+                    self.logger.info("Parcel final exiting : "+  self.trackedParcels[i].parcelID)
+                print("Parcel final exiting : "+  self.trackedParcels[i].parcelID)
+                exitingParcels.append(self.trackedParcels.pop(i))
+                exitingParcels[-1].isOutcoming = False
+                exitingParcels[-1].isExiting = True
+                
         for i in range(len(self.trackedParcels) - 1, -1, -1):
             if self.trackedParcels[i].xPosition[1] > self.trackerSpace.xMaxLimit:
                 if self.logger != None:
@@ -337,6 +353,7 @@ class ParcelTracker():
                 exitingParcels[-1].isExiting = True
 
         return exitingParcels, removedParcels
+    
         
     def update(self, image, incomingParcels, cam):
         """
@@ -354,13 +371,15 @@ class ParcelTracker():
 
         """
         t = time.perf_counter()
+        # correction de la distortion des images
         if self.trackerSpace.doUndistortion:
             image = self.trackerSpace.undistortImage(image)
-
+            
+        # calcul des longueur et large de colis
         fex.setParcelsWidthRef(self.trackedParcels, self.trackerSpace)
         
-        # Détecte et prépare les objets détecté pour le tracking.
-        numObj, objects = detectAndFilterParcels(self.parcelDetector, image, self.trackerSpace, 
+        # Détecte, filtre et prépare les objets pour le tracking.
+        data = detectAndFilterParcels(self.parcelDetector, image, self.trackerSpace, 
                                                  self.logger, cam, incomingParcels)
 
         # Filtre les parcels envoyés par l'unité précédente pour ne garder que ceux à venir.
@@ -369,35 +388,38 @@ class ParcelTracker():
         # Gestion des parcels sortants ou enlevés.
         exitingParcels, removedParcels = self._manageExitingParcels()
         
+        # mise à jour des positions relatives des colis
         self.p2pTracker.updatePositions(self.trackedParcels)
-        
+
         # Réalise l'association optimale par IOU entre parcels et détection.
-        # TO DO dans l'associator ajouter un blindage qui l'empêche d'associer un parcel avec une 
-        # détection si le score (1-IOU) est de 1.
-        unassociateDetections = self.detectionTracker.estimatePosition(self.trackedParcels, numObj, objects)
-
-        self._manageIncomingAndNewParcels(numObj, objects, unassociateDetections)
-        #print(len(self.trackedParcels), len(self.incomingParcels))
+        # et utilisation du filtre de kalman
+        unassociateDetections = self.detectionTracker.estimatePosition(self.trackedParcels, data['numObj'],
+                                                                      data['objects'])
+        # gestion des colis entrant et association
+        self._manageIncomingAndNewParcels(data['numObj'], data['objects'], unassociateDetections)
+        
+        # met à jour la projection réelle 
         self.setRealPosition()
-
+        
+        # estime les positions relatives des colis les uns par rapport aux autres
         self.p2pTracker.estimatePosition(self.trackedParcels)
-
+        
+        #
         self.decisionFonction()
 
         print('Full timing update tracker : ', (time.perf_counter()-t)*1000)
         
-        self.logger.info("{}: trackedParcels".format(len(self.trackedParcels)))
+        self.logger.info("{}: trackedParcels, {}: exitingParcels, {}: removedParcels, {}:                                              incomingParcels".format(len(self.trackedParcels), len(exitingParcels),
+                                                     len(removedParcels), len(self.incomingParcels)))
 
-        self.logger.info("{}: exitingParcels".format(len(exitingParcels)))
-
-        self.logger.info("{}: removedParcels".format(len(removedParcels)))
-
-        self.logger.info("{}: incomingParcels".format(len(self.incomingParcels)))
-
-        return self.trackedParcels + exitingParcels + removedParcels + 
-               self.incomingParcels, self.parcelInfo, objects, numObj
+        return {'parcels':self.trackedParcels + exitingParcels + removedParcels + self.incomingParcels
+                + self.incomingParcels, 
+                'objects': objects, 
+                'numObj': numObj}
+    
 
     def decisionFonction(self):
+        
         for parcel in self.trackedParcels:
             decisionCondition = (not parcel.isTracked)
             if parcel.isTracked and parcel.widthRef[0] != 0 and parcel.widthRef[1] != 0:
@@ -405,8 +427,7 @@ class ParcelTracker():
                 areaRef =  parcel.widthRef[0] * parcel.widthRef[1]
                 areaCondition = (areaNew > (1 + self.areaConfidenceThreshold) * areaRef) or (areaNew < self.areaConfidenceThreshold * areaRef)
                 decisionCondition = decisionCondition or areaCondition
-                #if areaCondition:
-                #    print(parcel.parcelID, parcel.xPosition, parcel.yPosition, parcel.widthRef)
+                
             if decisionCondition and parcel.p2p_xyPosition != (0,0,0,0):
                 parcel.xPosition = (parcel.p2p_xyPosition[1], parcel.p2p_xyPosition[3])
                 parcel.yPosition = (parcel.p2p_xyPosition[0], parcel.p2p_xyPosition[2])
@@ -416,6 +437,7 @@ class ParcelTracker():
                 proj = self.trackerSpace.getBeltCoordinatesForImage(parcel.p2p_xyPosition)
                 parcel.projectedBox = proj
                 parcel.isTracked = False
+                
 
     def setRealPosition(self):
         for parcel in self.trackedParcels + self.incomingParcels:
