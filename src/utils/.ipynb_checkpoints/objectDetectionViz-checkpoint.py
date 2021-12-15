@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from src.parcels.parcel import parcel
+from src.parcels.parcel import Parcel
 from src.utils.utils import (draw_bounding_box_on_image_array,
                             draw_bounding_box_on_image)
 

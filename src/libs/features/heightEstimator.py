@@ -2,7 +2,7 @@
 import numpy as np
 from copy import deepcopy
 
-from src.parcels.parcel import parcel
+from src.parcels.parcel import Parcel
 
 
 class HeightEstimator():

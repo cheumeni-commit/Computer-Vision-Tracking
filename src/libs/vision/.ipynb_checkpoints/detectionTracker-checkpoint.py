@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from src.parcels.parcel import parcel
+from src.parcels.parcel import Parcel
 from src.libs.vision.parcelAssociator import ParcelAssociator
 from src.libs.vision.kalmanPredictor import KalmanFilterPredictor
 

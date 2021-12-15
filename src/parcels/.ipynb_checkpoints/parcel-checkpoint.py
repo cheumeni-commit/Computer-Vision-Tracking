@@ -217,5 +217,3 @@ class Parcel():
         y = self.yPosition[1] - self.yPosition[0]
         self.widthRef = (x, y)
         
-
-parcel = Parcel()

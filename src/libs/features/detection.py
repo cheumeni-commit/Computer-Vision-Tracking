@@ -20,7 +20,7 @@ def filterPredictions(numObj, objects, trackerSpace):
         if trackerSpace.isInBeltBoundaries(objects[i][2]):
             filteredObjects.append(objects[i])
             
-    return len(filteredObjects), filteredObjects
+    return {'numObj':len(filteredObjects), 'objects':filteredObjects}
 
 
 def detectAndFilterParcels(parcelDetector, image, beltBoundaries, logger, cam, incomingParcels):
@@ -39,15 +39,16 @@ def detectAndFilterParcels(parcelDetector, image, beltBoundaries, logger, cam, i
     numObj, objects = parcelDetector.run_inference_for_frame(image)
     # trace logger
     if len(objects) !=0:
-       for i in range(len(objects)):
-           logger.info("--- Score detection object par NR:{} cam: {} ---".format(objects[i][1], cam))
+        for i in range(len(objects)):
+            logger.info("--- Score detection object par NR:{} cam: {} ---".format(objects[i][1], cam))
            #print("--- Score detection object par NR:{} cam: {} ---".format(objects[i][1], cam))
     else:
-       logger.info("--- nombre de detection NR:{} ---".format(len(objects)))
+        logger.info("--- nombre de detection NR:{} ---".format(len(objects)))
        #print("--- nombre de detection NR:{} ---".format(len(objects)))
 
-
-    numFilteredObj, filteredObjects = filterPredictions(numObj, objects, beltBoundaries)
-    filteredObjects.sort(key=lambda x: x[2][3], reverse=False) #Fait tenir debout tout le tracking.
+    # filtre les détections qui ne sont sur le tapis
+    data = filterPredictions(numObj, objects, beltBoundaries)
+    # trie les colis le front avant x_max
+    data['objects'].sort(key=lambda x: x[2][3], reverse=False) #Fait tenir debout tout le tracking.
     
-    return numFilteredObj, filteredObjects
+    return data

@@ -1,10 +1,13 @@
+import logging
 import numpy as np
 import os
 import tensorflow as tf
 
 from PIL import Image
 
-from src.libs.fasterObjectDectection.util import *
+from src.libs.fasterObjectDetection.util import *
+
+logger = logging.getLogger(__name__)
 
 
 class ObjectDetector():
@@ -12,21 +15,24 @@ class ObjectDetector():
         Classe ObjectDector.
     """
     
-    def __init__(self, PATH_TO_CKPT, PATH_TO_LABELS, NUM_CLASSES,
+    def __init__(self, PATH_TO_CKPT, PATH_TO_LABELS,
                  min_score_threshold=0.5, gpuDevice="0", 
                  gpuFraction=0.4, initSize=(1944,2592,3)):
         
-        print('\nInitialization of ObjectDetector, and GPU loadings')
+        logger.info('\nInitialization of ObjectDetector, and GPU loadings')
+        
+        print(PATH_TO_CKPT)
+        print(PATH_TO_LABELS)
         
         self.min_score_threshold = min_score_threshold
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpuDevice
+        #os.environ["CUDA_VISIBLE_DEVICES"] = gpuDevice
         
         #with tf.device('/device:GPU:1'):
         
         self.detection_graph = tf.Graph()
         with self.detection_graph.as_default():
-            od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+            od_graph_def = tf.compat.v1.GraphDef() #tf.GraphDef()
+            with tf.io.gfile.GFile(PATH_TO_CKPT, 'rb') as fid: #tf.gfile.GFile
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
@@ -36,11 +42,8 @@ class ObjectDetector():
             self.sess = tf.Session(graph=self.detection_graph,config=config)
 
         label_map = load_labelmap(PATH_TO_LABELS)
-        categories = convert_label_map_to_categories(label_map, 
-                                                     max_num_classes=NUM_CLASSES,
-                                                     use_display_name=True)
         
-        self.category_index = create_category_index(categories)
+        self.category_index = create_category_index(label_map)
         
         ops = self.detection_graph.get_operations()
         all_tensor_names = {output.name for op in ops for output in op.outputs}
@@ -53,9 +56,9 @@ class ObjectDetector():
         
         self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')        
         
-        print('Starting initRun...')
+        logger.info('Starting initRun...')
         self.__initRun(initSize)
-        print('End of init, ObjectDector ready')
+        logger.info('End of init, ObjectDector ready')
         
 
     def __initRun(self, initSize):

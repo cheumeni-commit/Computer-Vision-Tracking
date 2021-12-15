@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 import numpy as np
 
-from src.parcels.parcel import parcel
-from parcel_tracking.TrackerSpace import TrackerSpace
+from src.parcels.parcel import Parcel
+from src.parcelSpace import TrackerSpace
+
 
 def getTrackedParcelByID(parcels, parcelID):
     for parcel in parcels:
         if parcel.parcelID == parcelID:
             return parcel
     return None
+
 
 class Peer2peerTracker():
 
@@ -19,20 +21,22 @@ class Peer2peerTracker():
     def updatePositions(self, parcels):
         for i in range(len(parcels)):
             dists = []
-            if parcels[i].isTracked:
-                for j in range(len(parcels)):
-                    if i != j:
-                        dists.append((j,np.linalg.norm([parcels[i].xPosition[0]-parcels[j].xPosition[0], parcels[i].yPosition[0]-parcels[j].yPosition[0]])))
-                dists = sorted(dists, key=lambda dist: dist[1])
-                parcelsToParcelsDistance = [] 
-                for k in range(min(len(dists), self.maxParcels)):
-                    pID = parcels[dists[k][0]].parcelID
-                    deltaX = (parcels[i].xPosition[0] - parcels[dists[k][0]].xPosition[0])
-                    deltaY = (parcels[i].yPosition[0] - parcels[dists[k][0]].yPosition[0])
-                    parcelsToParcelsDistance.append((pID, deltaX, deltaY))
-                parcels[i].parcelsToParcelsDistance = parcelsToParcelsDistance
+            for j in range(len(parcels)):
+                if parcels[i].isTracked:
+                    dists.append((j,np.linalg.norm([parcels[i].xPosition[0]-parcels[j].xPosition[0], parcels[i].yPosition[0]-parcels[j].yPosition[0]])))
+         
+            dists = sorted(dists, key=lambda x: x[1])
+            parcelsToParcelsDistance = [] 
+                     
+            for k in range(min(len(dists), self.maxParcels)):
+                pID = parcels[dists[k][0]].parcelID
+                deltaX = (parcels[i].xPosition[0] - parcels[dists[k][0]].xPosition[0])
+                deltaY = (parcels[i].yPosition[0] - parcels[dists[k][0]].yPosition[0])
+                parcelsToParcelsDistance.append((pID, deltaX, deltaY))
+            parcels[i].parcelsToParcelsDistance = parcelsToParcelsDistance
 
     def estimatePosition(self, parcels):
+                     
         for parcel in parcels:
             if parcel.widthRef[0] != 0 and parcel.widthRef[1] != 0:
                 xs = []

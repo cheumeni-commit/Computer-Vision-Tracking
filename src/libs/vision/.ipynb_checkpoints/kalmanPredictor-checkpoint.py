@@ -27,11 +27,13 @@ class KalmanFilterPredictor(object):
         dt = 1/self.fps #time between 2 acquisitions
         
         self.kalmanFilter = cv2.KalmanFilter(7,4) #7 dynamic parameters (ymin,xmin,ymax,xmax,vy, vxmin, vxmax) and 4 measured parameters (the 4 coordinates)
-        self.kalmanFilter.measurementMatrix = np.array([[1,0,0,0,0,0,0], [0,1,0,0,0,0,0], [0,0,1,0,0,0,0],\
+        self.kalmanFilter.measurementMatrix = np.array([[1,0,0,0,0,0,0], [0,1,0,0,0,0,0],                                                                         [0,0,1,0,0,0,0],\
                                                          [0,0,0,1,0,0,0]], np.float32)
-        self.kalmanFilter.transitionMatrix = np.array([[1,0,0,0,dt,0,0], [0,1,0,0,0,dt,0], [0,0,1,0,dt,0,0],\
-                                                       [0,0,0,1,0,0,dt], [0,0,0,0,1,0,0],[0,0,0,0,0,1,0],\
+        
+        self.kalmanFilter.transitionMatrix = np.array([[1,0,0,0,dt,0,0], [0,1,0,0,0,dt,0],                                                                      [0,0,1,0,dt,0,0],\
+                                                       [0,0,0,1,0,0,dt], [0,0,0,0,1,0,0],                                                                       [0,0,0,0,0,1,0],\
                                                        [0,0,0,0,0,0,1]], np.float32)
+        
         self.kalmanFilter.measurementNoiseCov = np.array([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]],\
                                                          np.float32)
     

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-from cars_parcel import Parcel
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from copy import deepcopy
+
+from src.parcels.parcel import Parcel
+
 
 class ParcelAssociator():
     """
@@ -44,13 +46,15 @@ class ParcelAssociator():
         """
         if self.traceInfo:
             print(str(row_ind) + '  ' + str(col_ind))
-        ### Association : Mise à des champs du Parcel par les nouvelles données. 
+            
+        ### Association : Mise à jour des champs du Parcel par les nouvelles données. 
         for i in range(len(row_ind)):
-            parcels[row_ind[i]].relativeBox = objects[col_ind[i]][2] + tuple() #python witchcraft : création d'un nouveau tuple pour ne pas pointer sur le tuple d'origine
+            parcels[row_ind[i]].relativeBox = objects[col_ind[i]][2] + tuple() 
             parcels[row_ind[i]].center = computeCenterFromRelativeBox(objects[col_ind[i]][2])
             parcels[row_ind[i]].isTracked = True
             parcels[row_ind[i]].isInterpolated = False
             parcels[row_ind[i]].numberOfTimesUndetected = 0
+            
         ### Incrémentation du compteur de chaque Parcel non associé.
         for i in range(len(parcels)):
             if i not in row_ind:
@@ -58,11 +62,12 @@ class ParcelAssociator():
                 parcels[i].isTracked = False
                 parcels[i].isInterpolated = True
                 parcels[i].relativeBox = deepcopy(parcels[i].nextRelativeBox)
-        unassociateDetections = []
-        for i in range(numObj):
-            if i not in col_ind:
-                unassociateDetections.append(i)
+                
+        unassociateDetections = [ i for i in range(numObj)
+                                    if i not in col_ind]
+        
         return unassociateDetections
+    
 
     def computeIOUscoreMatrix(self, parcels, numObj, objects):
         """
@@ -80,7 +85,7 @@ class ParcelAssociator():
         iouMat = np.zeros((len(parcels), numObj))
         for i in range(len(parcels)):
             for j in range(numObj):
-                ### Calcul du score basé sur l'IOU, score = 1 - IOU
+                ## Calcul du score basé sur l'IOU, score = 1 - IOU
                 iouMat[i,j] = computeIOUforRelativeBoxes(parcels[i].nextRelativeBox, objects[j][2])
         return iouMat
 
@@ -98,16 +103,18 @@ class ParcelAssociator():
 
         if self.traceInfo:
             print(str(scoreMatrix))
-        ### Programmation dynamyque donnant la liste des associations optimales.
+            
+        ### Programmation dynamique donnant la liste des associations optimales.
         row_ind, col_ind = linear_sum_assignment(scoreMatrix)
         row_ind = row_ind.tolist()
         col_ind = col_ind.tolist()
 
-        ### Blindage suppression des associations pour un score nul
+        ### Blindage: suppression des associations pour un score nul
         for i in range(len(row_ind)-1,-1,-1):
             if scoreMatrix[row_ind[i]][col_ind[i]] >= self.confidenceThreshold:
                 row_ind.pop(i)
                 col_ind.pop(i)
+                
         ### TO DO :
         ### - Vérifier que la matrice de score et le linear_sum est bien fonctionnel.
         ### - Blinder en empêchant une association avec un IOU à 0 (soit un score de 1)
@@ -115,6 +122,7 @@ class ParcelAssociator():
         ### à la fonction associate en transmettant la scoreMatrix aussi (moins bien).
         unassociateDetections = self.associate(row_ind, col_ind, parcels, numObj, objects)
         return unassociateDetections
+    
 
     def computeCenterEuclidieanDistScoreMatrix(self, parcels, numObj, objects):
         """
@@ -137,6 +145,7 @@ class ParcelAssociator():
                 edMat[i,j] = computeEuclideanDistForCenters(parcels[i].nextCenter, objCenter)
         return edMat
     
+    
     def associateWithEuclidieanDist(self, parcels, numObj, objects):
         """
         Associe à l'aide d'un algorithme hongrois (linear_sum_assignment)
@@ -152,6 +161,7 @@ class ParcelAssociator():
             print(str(scoreMatrix))
         row_ind, col_ind = linear_sum_assignment(scoreMatrix)
         self.associate(row_ind, col_ind, parcels, numObj, objects)
+        
 
     def associateWithIOUandEuclidieanDist(self, parcels, numObj, objects):
         """
