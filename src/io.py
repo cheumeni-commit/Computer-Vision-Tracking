@@ -1,10 +1,8 @@
-
 import logging
 import yaml
 
 
 logger = logging.getLogger(__name__)
-
 
 
 def load_yml_file(file):

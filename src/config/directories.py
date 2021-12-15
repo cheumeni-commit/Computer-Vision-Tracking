@@ -12,8 +12,11 @@ class _Directories:
         
         self.dir_config = self.root_dir / "config"
         self.dir_data = self.root_dir / "data"
-        
         self.dir_project = self.root_dir / "src"
+        self.dir_raw = self.dir_data / "raw"
+        self.dir_video = self.dir_data / "saveVideos"
+        self.dir_labels = self.dir_data / "labels"
+        self.dir_model = self.dir_data / "artefacts"
         
         
         for dir_path in vars(self).values():

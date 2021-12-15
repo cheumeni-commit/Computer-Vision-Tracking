@@ -7,8 +7,8 @@ from src.constants import (C_YML,
                            C_PARAMETER
                           )
 
-
 logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class Config:
