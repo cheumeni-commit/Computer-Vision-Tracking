@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from PIL import Image
 
-from src.libs.fasterObjectDectection.util import *
+from src.libs.fasterObjectDetection.util import *
 
 
 class ObjectDetector():
@@ -36,11 +36,8 @@ class ObjectDetector():
             self.sess = tf.Session(graph=self.detection_graph,config=config)
 
         label_map = load_labelmap(PATH_TO_LABELS)
-        categories = convert_label_map_to_categories(label_map, 
-                                                     max_num_classes=NUM_CLASSES,
-                                                     use_display_name=True)
         
-        self.category_index = create_category_index(categories)
+        self.category_index = create_category_index(label_map)
         
         ops = self.detection_graph.get_operations()
         all_tensor_names = {output.name for op in ops for output in op.outputs}
