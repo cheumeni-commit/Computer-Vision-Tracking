@@ -1,3 +1,13 @@
 .DS_Store/*
 .ipynb_checkpoints/*
 __pycache__/*
+.coverage/*
+Computer_Vision_Tracking.egg-info/*
+data/labels/.ipynb_checkpoints/*
+data/raw/*
+debug.ipynb
+src/.DS_Store
+src/.ipynb_checkpoints/*
+src/__init__.pyc
+src/__pycache__/*
+src/parcelDetection.pyc
