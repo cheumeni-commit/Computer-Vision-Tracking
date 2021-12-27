@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
 
-from src.parcels.parcel import Parcel
-from src.parcelSpace import TrackerSpace
-
 
 def getTrackedParcelByID(parcels, parcelID):
     for parcel in parcels:

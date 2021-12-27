@@ -3,8 +3,6 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from copy import deepcopy
 
-from src.parcels.parcel import Parcel
-
 
 class ParcelAssociator():
     """

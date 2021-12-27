@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
 import cv2
-import os
 
 
 class KalmanFilterPredictor(object):
@@ -92,7 +91,7 @@ class KalmanFilterPredictor(object):
         ymax_next = float(predicted[2,0])
         xmax_next = float(predicted[3,0])
         vy_next = float(predicted[4,0])
-        vxmin_next = float(predicted[5,0])
+        #vxmin_next = float(predicted[5,0])
         vxmax_next = float(predicted[6,0])
         
         parcel.nextRelativeBox = (ymin_next, xmin_next, ymax_next, xmax_next) + tuple()

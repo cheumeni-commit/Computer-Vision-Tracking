@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Config:
-    color: list
-    barcode: list
-    confBay: dict
+    color:list
+    barcode:list
+    confBay:dict
 
 
 def load_config():
@@ -29,7 +29,6 @@ def load_config():
 
 
 def get_config(env: str) -> Config:
-    
     config = load_config()[C_PARAMETER]
     return Config(**config)
 

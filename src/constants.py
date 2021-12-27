@@ -19,5 +19,5 @@ C_BAY = 'bay'
 C_UOOO = 'U000'
 
 # Tracker parameters
-C_TRACKER1 = 'ParcelTracker1'
-C_TRACKER2 = 'ParcelTracker2'
+C_TRACKER1 = "ParcelTracker1"
+C_TRACKER2 = "ParcelTracker2"

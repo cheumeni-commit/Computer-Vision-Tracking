@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from src.parcels.parcel import Parcel
 import configparser as cfg
 import os
 import traceback
@@ -7,9 +6,7 @@ import traceback
 import cv2
 import numpy as np
 
-#from object_detector.ObjectDetector import ObjectDetector
-from src.utils.utils import draw_bounding_box_on_image_array
-
+from src.config.directories import directories as dirs
 
 class TrackerSpace():
     """
@@ -23,7 +20,7 @@ class TrackerSpace():
         self.primeAssociationAreas = dict()
         self.zoneUnit0 = ''
         
-        self._loadConfig(configFile, trackerName)
+        self._loadConfig(dirs.dir_config / configFile, trackerName)
         
         self.cameraMatrix = self.cameraCalibration['cameraMatrix']
         self.distortionCoeff = self.cameraCalibration['distortionCoeff']
@@ -33,7 +30,9 @@ class TrackerSpace():
         self.xMin, self.yMin = self.beltBoundaries[0][1], self.beltBoundaries[0][0]   
         self.xMax, self.yMax = self.beltBoundaries[0][3], self.beltBoundaries[0][2] 
         ## info limite suivant l'axe sur le convoyeur
-        self.xMinLimit, self.xMaxLimit = self.getBeltRealPointCoordinatesForScene((self.beltBoundaries[0][1], self.beltBoundaries[0][3]))
+        #self.xMinLimit, self.xMaxLimit = self.getBeltRealPointCoordinatesForScene((self.beltBoundaries[0][1], self.beltBoundaries[0][3]))
+        self.xMinLimit = self.realPositionOfCenter[0] - int(abs(self.beltBoundaries[0][1] - self.imageCenter[0]) * self.imageSize[0] / self.quadraticResolutionCoefficient[-1])
+        self.xMaxLimit = self.realPositionOfCenter[0] + int((self.beltBoundaries[0][3] - self.imageCenter[0]) * self.imageSize[0] / self.quadraticResolutionCoefficient[-1])
         ## zone association
         if self.zoneUnit0 != '':
             self.xMinAss, self.yMinAss = self.primeAssociationAreas[self.zoneUnit0][1], self.primeAssociationAreas[self.zoneUnit0][0]   
@@ -69,7 +68,7 @@ class TrackerSpace():
             self.quadraticResolutionCoefficient = (float(quadraticResolutionCoefficientStr.split(',')[0]),
                                                float(quadraticResolutionCoefficientStr.split(',')[1]),
                                                float(quadraticResolutionCoefficientStr.split(',')[2]))
-            self.cameraCalibration = np.load(cameraCalibrationStr)
+            self.cameraCalibration = np.load(dirs.dir_config / cameraCalibrationStr)
             
             if primeAssociationAreasStr != '':
                 for zone in primeAssociationAreasStr.split(';'):
@@ -228,18 +227,7 @@ class TrackerSpace():
         undistortedImage = cv2.remap(image, self.undistortionMapx, self.undistortionMapy, cv2.INTER_LINEAR)
 
         return undistortedImage
-    
-    def __undistortImageWithParamsRecompute(self, image):
-        ### Cher en temps et bon on veut pas recalculer
-        h,  w = image.shape[:2]         
-
-        # recalculer la camera matrix ne marche pas bien et casse la résolution constante en x et y
-        #newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(self.cameraMatrix, self.distortionCoeff, (w,h), 1, (w,h))
-        mapx, mapy = cv2.initUndistortRectifyMap(self.cameraMatrix, self.distortionCoeff, None, self.cameraMatrix, (w,h), 5)
-        undistortImage = cv2.remap(image, mapx, mapy, cv2.INTER_LINEAR)
-
-        x, y, w, h = roi
-        return undistortImage[y:y+h, x:x+w]
+        
 
 def isInDelimitedArea(bbox, area):
 

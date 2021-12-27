@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-
-from src.parcels.parcel import Parcel
-from src.utils.utils import (draw_bounding_box_on_image_array,
-                            draw_bounding_box_on_image)
+from src.utils.utils import draw_bounding_box_on_image_array
 
 
-def drawParcelOnImageArray(parcel, image, *, thickness=4, displayString=True):
+def drawParcelOnImageArray(parcel, image, thickness=4, displayString=True):
     """
     Dessine les éléments d'un Parcel sur l'image où il est détecté.
 
