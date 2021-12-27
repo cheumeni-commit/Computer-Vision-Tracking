@@ -4,9 +4,9 @@ __pycache__/*
 .coverage/*
 Computer_Vision_Tracking.egg-info/*
 data/labels/.ipynb_checkpoints/*
-data/raw/*
 debug.ipynb
 src/.DS_Store
+raw/.DS_Store
 src/.ipynb_checkpoints/*
 src/__init__.pyc
 src/__pycache__/*
