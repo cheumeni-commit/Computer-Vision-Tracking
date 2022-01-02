@@ -15,10 +15,7 @@ def filterPredictions(numObj, objects, trackerSpace):
     Returns:
         La liste des objets detectes ayant passe le filtre et la taille de cette liste.
     """
-    filteredObjects = []
-    for i in range(numObj):
-        if trackerSpace.isInBeltBoundaries(objects[i][2]):
-            filteredObjects.append(objects[i])
+    filteredObjects = [objects[i] for i, _ in enumerate(numObj) if trackerSpace.isInBeltBoundaries(objects[i][2])]
             
     return {'numObj':len(filteredObjects), 'objects':filteredObjects}
 

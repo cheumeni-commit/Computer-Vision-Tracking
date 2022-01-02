@@ -104,6 +104,7 @@ def load_image(PIdM, **kwargs):
 
 
 def loadImageServer(imageQueue, incomingQ): 
+    
     dirlist = os.listdir(dirs.dir_raw)
     PIdM = ParcelIdManager(C_UOOO)
 
@@ -145,8 +146,8 @@ def imageStream(imageQueue):
 def display_tracker(dataStream, data):
     
     image = cv2.cvtColor(dataStream, cv2.COLOR_BGR2RGB)
-    for i in range(len(data.get('objects'))):
-        ymin, xmin, ymax, xmax = data.get('objects')[i][2]
+    for i, v in enumerate(data.get('objects')):
+        ymin, xmin, ymax, xmax = v[i][2]
         draw_bounding_box_on_image_array(image, ymin, xmin, ymax, xmax, 'red', 3, '', True)    
     for parcel in data.get('parcels'):
         drawParcelOnImageArray(parcel, image, displayString = True)

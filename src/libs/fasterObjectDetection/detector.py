@@ -46,8 +46,7 @@ class ObjectDetector():
         self.tensor_dict = {}
         for key in ['num_detections', 'detection_boxes',
                     'detection_scores','detection_classes']:
-            tensor_name = key + ':0'
-            if tensor_name in all_tensor_names:
+            if (tensor_name :=  key + ':0') in all_tensor_names:
                 self.tensor_dict[key] = self.detection_graph.get_tensor_by_name(tensor_name)          
         
         self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')        
@@ -77,17 +76,16 @@ class ObjectDetector():
         detection_boxes = output_dict.get('detection_boxes')[0]
         detection_scores = output_dict.get('detection_scores')[0]
         
-        for i in range( int(output_dict.get('num_detections')[0])):
-            score = detection_scores[i]
-            if score > self.min_score_threshold:
+        for i, _ in enumerate(output_dict.get('num_detections')[0]):
+
+            if (score := detection_scores[i])  > self.min_score_threshold:
                 numObjects += 1
                 objectList.append([])
-                box = tuple(detection_boxes[i].tolist())
                 if classes[i] in self.category_index.keys():
                     class_name = self.category_index[classes[i]].get('name')
                 objectList[-1].append(class_name)
                 objectList[-1].append(score)
-                objectList[-1].append(box)
+                objectList[-1].append(tuple(detection_boxes[i].tolist()))
 
         return numObjects, objectList
 

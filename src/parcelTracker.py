@@ -187,7 +187,7 @@ class ParcelTracker():
         
         self.parcelInfo = self.newParcel()
         
-        for i in range(numObj):
+        for i, _ in enumerate(numObj):
             self.fakeParcels["parcelID"] = self.PIdM.parcelIdGenerator()[0]
             self.fakeParcels["NR"] = str(objects[i][1])
             self.fakeParcels["bbox"] = objects[i][2]

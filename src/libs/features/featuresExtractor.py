@@ -3,6 +3,7 @@
 
 def setParcelsWidthRef(parcels, trackerSpace):
     for parcel in parcels:
-        if parcel.relativeBox[1] < trackerSpace.imageCenter[0] \
-           and parcel.relativeBox[3] > trackerSpace.imageCenter[0]:
+        a = (parcel.relativeBox[1] < trackerSpace.imageCenter[0])
+        b = (parcel.relativeBox[3] > trackerSpace.imageCenter[0])
+        if a and b :
             parcel.setWidthRef() 
