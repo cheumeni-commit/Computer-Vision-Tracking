@@ -122,7 +122,7 @@ def parcelDetection():
     imageQ = Queue()
     incomingQ = Queue()
     
-    liveDetectionProcess = Thread(target=parcelDetectionWorker, args=(imageQ,incomingQ))
+    liveDetectionProcess = Thread(target=parcelDetectionWorker, args=(imageQ, incomingQ))
     liveDetectionProcess.start()
 
     time.sleep(20)

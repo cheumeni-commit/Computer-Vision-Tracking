@@ -372,7 +372,7 @@ class ParcelTracker():
         # Gestion des parcels sortants ou enlevés.
         exitingParcels, removedParcels = self._manageExitingParcels()
         
-        # mise à jour des positions relatives des colis
+        # mise à jour des positions relatives des colis trackés
         self.p2pTracker.updatePositions(self.trackedParcels)
 
         # Réalise l'association optimale par IOU entre parcels et détection.
@@ -382,13 +382,13 @@ class ParcelTracker():
         # gestion des colis entrant et association
         self._manageIncomingAndNewParcels(data.get('numObj'), data.get('objects'), unassociateDetections)
         
-        # met à jour la projection réelle 
+        # met à jour des coordonnées réelles et des coordonnées images
         self.setRealPosition()
         
         # estime les positions relatives des colis les uns par rapport aux autres
         self.p2pTracker.estimatePosition(self.trackedParcels)
         
-        #
+        # mise à jour des caractéristique des parcels
         self.decisionFonction()
 
         print('Full timing update tracker : ', (time.perf_counter()-t)*1000)

@@ -37,7 +37,7 @@ def detectAndFilterParcels(parcelDetector, image, beltBoundaries):
 
     # filtre les détections qui ne sont sur le tapis
     data = filterPredictions(numObj, objects, beltBoundaries)
-    # trie les colis le front avant x_max
+    # trie les colis par le front avant x_max
     data.get('objects').sort(key=lambda x: x[2][3], reverse=False) #Fait tenir debout tout le tracking.
     
     return data

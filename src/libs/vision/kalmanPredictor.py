@@ -26,11 +26,11 @@ class KalmanFilterPredictor(object):
         dt = 1/self.fps #time between 2 acquisitions
         
         self.kalmanFilter = cv2.KalmanFilter(7,4) #7 dynamic parameters (ymin,xmin,ymax,xmax,vy, vxmin, vxmax) and 4 measured parameters (the 4 coordinates)
-        self.kalmanFilter.measurementMatrix = np.array([[1,0,0,0,0,0,0], [0,1,0,0,0,0,0],                                                                         [0,0,1,0,0,0,0],\
+        self.kalmanFilter.measurementMatrix = np.array([[1,0,0,0,0,0,0], [0,1,0,0,0,0,0],[0,0,1,0,0,0,0],\
                                                          [0,0,0,1,0,0,0]], np.float32)
         
-        self.kalmanFilter.transitionMatrix = np.array([[1,0,0,0,dt,0,0], [0,1,0,0,0,dt,0],                                                                      [0,0,1,0,dt,0,0],\
-                                                       [0,0,0,1,0,0,dt], [0,0,0,0,1,0,0],                                                                       [0,0,0,0,0,1,0],\
+        self.kalmanFilter.transitionMatrix = np.array([[1,0,0,0,dt,0,0], [0,1,0,0,0,dt,0],[0,0,1,0,dt,0,0],\
+                                                       [0,0,0,1,0,0,dt], [0,0,0,0,1,0,0],[0,0,0,0,0,1,0],\
                                                        [0,0,0,0,0,0,1]], np.float32)
         
         self.kalmanFilter.measurementNoiseCov = np.array([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]],\
@@ -95,13 +95,13 @@ class KalmanFilterPredictor(object):
         vxmax_next = float(predicted[6,0])
         
         parcel.nextRelativeBox = (ymin_next, xmin_next, ymax_next, xmax_next) + tuple()
-        parcel.speed  = (vxmax_next,vy_next) + tuple() 
+        parcel.speed  = (vxmax_next, vy_next) + tuple() 
         parcel.nextCenter = ((xmin_next + xmax_next) / 2 , (ymin_next + ymax_next) / 2) + tuple()
         
     def updateStates(self, parcels):
         """
-        Parcourt la liste des Parcel à prédire et appel les fonctions
-        de mises en place et de mise à jour.
+        Parcourt la liste des Parcels à prédire et appel les fonctions
+        de mises à jour des positions.
         
         Args:
             parcels: liste des Parcel à prédire.

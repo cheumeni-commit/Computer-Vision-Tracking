@@ -30,9 +30,7 @@ class TrackerSpace():
         self.xMin, self.yMin = self.beltBoundaries[0][1], self.beltBoundaries[0][0]   
         self.xMax, self.yMax = self.beltBoundaries[0][3], self.beltBoundaries[0][2] 
         ## info limite suivant l'axe sur le convoyeur
-        #self.xMinLimit, self.xMaxLimit = self.getBeltRealPointCoordinatesForScene((self.beltBoundaries[0][1], self.beltBoundaries[0][3]))
-        self.xMinLimit = self.realPositionOfCenter[0] - int(abs(self.beltBoundaries[0][1] - self.imageCenter[0]) * self.imageSize[0] / self.quadraticResolutionCoefficient[-1])
-        self.xMaxLimit = self.realPositionOfCenter[0] + int((self.beltBoundaries[0][3] - self.imageCenter[0]) * self.imageSize[0] / self.quadraticResolutionCoefficient[-1])
+        self.xMinLimit, self.xMaxLimit = self.getBeltRealPointCoordinatesForScene((self.beltBoundaries[0][1], self.beltBoundaries[0][3]))
         ## zone association
         if self.zoneUnit0 != '':
             self.xMinAss, self.yMinAss = self.primeAssociationAreas[self.zoneUnit0][1], self.primeAssociationAreas[self.zoneUnit0][0]   
@@ -102,11 +100,8 @@ class TrackerSpace():
 
     def getBeltRealPointCoordinatesForScene(self, point):
 
-        resolution = self.quadraticResolutionCoefficient[-1]
-        ximg, yimg = point
-        xsc        = self.realPositionOfCenter[0] - int(((ximg - self.imageCenter[0]) * self.imageSize[0]))/ resolution 
-        ysc        = self.realPositionOfCenter[1] + int(((yimg - self.imageCenter[1]) * self.imageSize[1]))/ resolution 
-
+        xsc = self.realPositionOfCenter[0] - int(abs(self.beltBoundaries[0][1] - self.imageCenter[0]) * self.imageSize[0] / self.quadraticResolutionCoefficient[-1])
+        ysc = self.realPositionOfCenter[0] + int((self.beltBoundaries[0][3] - self.imageCenter[0]) * self.imageSize[0] / self.quadraticResolutionCoefficient[-1])
         return xsc, ysc
     
     def getBeltCoordinates(self, parcel):
@@ -225,7 +220,6 @@ class TrackerSpace():
 
     def undistortImage(self, image):
         undistortedImage = cv2.remap(image, self.undistortionMapx, self.undistortionMapy, cv2.INTER_LINEAR)
-
         return undistortedImage
         
 
