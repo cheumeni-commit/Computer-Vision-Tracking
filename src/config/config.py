@@ -2,9 +2,9 @@ from dataclasses import dataclass
 import logging
 import yaml
 
-from src.config.directories import directories as dirs
-from src.constants import (C_YML,
-                           C_PARAMETER
+from config.directories import directories as dirs
+from constants import (C_YML,
+                       C_PARAMETER
                           )
 
 logger = logging.getLogger(__name__)

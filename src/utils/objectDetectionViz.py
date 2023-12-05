@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from src.utils.utils import draw_bounding_box_on_image_array
+from utils.utils import draw_bounding_box_on_image_array
 
 
 def drawParcelOnImageArray(parcel, image, thickness=4, displayString=True):

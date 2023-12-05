@@ -4,7 +4,7 @@ from scipy.optimize import linear_sum_assignment
 from copy import deepcopy
 
 
-class ParcelAssociator():
+class ParcelAssociator:
     """
     Classe ParcelAssociator permet l'association d'objets Parcel aux dédections
     réalisés par un ObjectDetector.
@@ -25,7 +25,6 @@ class ParcelAssociator():
         self.traceInfo = False
         self.confidenceThreshold = 0.75
 
-
     def associate(self, row_ind, col_ind, parcels, numObj, objects):
         """
         Associe les objets Parcel aux détections par rapport aux résultats
@@ -44,15 +43,15 @@ class ParcelAssociator():
         """
         if self.traceInfo:
             print(str(row_ind) + '  ' + str(col_ind))
-            
+
         ### Association : Mise à jour des champs du Parcel par les nouvelles données. 
         for i in range(len(row_ind)):
-            parcels[row_ind[i]].relativeBox = objects[col_ind[i]][2] + tuple() 
+            parcels[row_ind[i]].relativeBox = objects[col_ind[i]][2] + tuple()
             parcels[row_ind[i]].center = computeCenterFromRelativeBox(objects[col_ind[i]][2])
             parcels[row_ind[i]].isTracked = True
             parcels[row_ind[i]].isInterpolated = False
             parcels[row_ind[i]].numberOfTimesUndetected = 0
-            
+
         ### Incrémentation du compteur de chaque Parcel non associé.
         for i in range(len(parcels)):
             if i not in row_ind:
@@ -60,12 +59,11 @@ class ParcelAssociator():
                 parcels[i].isTracked = False
                 parcels[i].isInterpolated = True
                 parcels[i].relativeBox = deepcopy(parcels[i].nextRelativeBox)
-                
-        unassociateDetections = [ i for i in range(numObj)
-                                    if i not in col_ind]
-        
+
+        unassociateDetections = [i for i in range(numObj)
+                                 if i not in col_ind]
+
         return unassociateDetections
-    
 
     def computeIOUscoreMatrix(self, parcels, numObj, objects):
         """
@@ -84,7 +82,7 @@ class ParcelAssociator():
         for i in range(len(parcels)):
             for j in range(numObj):
                 ## Calcul du score basé sur l'IOU, score = 1 - IOU
-                iouMat[i,j] = computeIOUforRelativeBoxes(parcels[i].nextRelativeBox, objects[j][2])
+                iouMat[i, j] = computeIOUforRelativeBoxes(parcels[i].nextRelativeBox, objects[j][2])
         return iouMat
 
     def associateWithIOU(self, parcels, numObj, objects):
@@ -101,18 +99,18 @@ class ParcelAssociator():
 
         if self.traceInfo:
             print(str(scoreMatrix))
-            
+
         ### Programmation dynamique donnant la liste des associations optimales.
         row_ind, col_ind = linear_sum_assignment(scoreMatrix)
         row_ind = row_ind.tolist()
         col_ind = col_ind.tolist()
 
         ### Blindage: suppression des associations pour un score nul
-        for i in range(len(row_ind)-1,-1,-1):
+        for i in range(len(row_ind) - 1, -1, -1):
             if scoreMatrix[row_ind[i]][col_ind[i]] >= self.confidenceThreshold:
                 row_ind.pop(i)
                 col_ind.pop(i)
-                
+
         ### TO DO :
         ### - Vérifier que la matrice de score et le linear_sum est bien fonctionnel.
         ### - Blinder en empêchant une association avec un IOU à 0 (soit un score de 1)
@@ -120,7 +118,6 @@ class ParcelAssociator():
         ### à la fonction associate en transmettant la scoreMatrix aussi (moins bien).
         unassociateDetections = self.associate(row_ind, col_ind, parcels, numObj, objects)
         return unassociateDetections
-    
 
     def computeCenterEuclidieanDistScoreMatrix(self, parcels, numObj, objects):
         """
@@ -140,10 +137,9 @@ class ParcelAssociator():
         for i in range(len(parcels)):
             for j in range(numObj):
                 objCenter = computeCenterFromRelativeBox(objects[j][2])
-                edMat[i,j] = computeEuclideanDistForCenters(parcels[i].nextCenter, objCenter)
+                edMat[i, j] = computeEuclideanDistForCenters(parcels[i].nextCenter, objCenter)
         return edMat
-    
-    
+
     def associateWithEuclidieanDist(self, parcels, numObj, objects):
         """
         Associe à l'aide d'un algorithme hongrois (linear_sum_assignment)
@@ -159,7 +155,6 @@ class ParcelAssociator():
             print(str(scoreMatrix))
         row_ind, col_ind = linear_sum_assignment(scoreMatrix)
         self.associate(row_ind, col_ind, parcels, numObj, objects)
-        
 
     def associateWithIOUandEuclidieanDist(self, parcels, numObj, objects):
         """
@@ -179,7 +174,7 @@ class ParcelAssociator():
             print(str(scoreMatrix))
         row_ind, col_ind = linear_sum_assignment(scoreMatrix)
         self.associate(row_ind, col_ind, parcels, numObj, objects)
-        
+
 
 def computeCenterFromRelativeBox(rBox):
     """
@@ -191,7 +186,8 @@ def computeCenterFromRelativeBox(rBox):
     Returns:
         Le centre de la relativeBox (x,y).
     """
-    return ((rBox[3] + rBox[1]) / 2 , (rBox[2] + rBox[0]) / 2)
+    return (rBox[3] + rBox[1]) / 2, (rBox[2] + rBox[0]) / 2
+
 
 def computeEuclideanDistForCenters(center, objCenter):
     """
@@ -204,7 +200,7 @@ def computeEuclideanDistForCenters(center, objCenter):
     Returns:
         La distance euclidienne entre les centres.
     """
-    return np.linalg.norm([center[0]-objCenter[0], center[1]-objCenter[1]])
+    return np.linalg.norm([center[0] - objCenter[0], center[1] - objCenter[1]])
 
 
 def computeIOUforRelativeBoxes(relativeBox, objRelativeBox):
@@ -220,8 +216,8 @@ def computeIOUforRelativeBoxes(relativeBox, objRelativeBox):
     """
     yg_min, xg_min, yg_max, xg_max = relativeBox
     yp_min, xp_min, yp_max, xp_max = objRelativeBox
-    
-    #calculate the coordiantes of the intersection rectangle
+
+    # calculate the coordiantes of the intersection rectangle
     x1 = max(xg_min, xp_min)
     y1 = max(yg_min, yp_min)
     x2 = min(xg_max, xp_max)
@@ -232,13 +228,13 @@ def computeIOUforRelativeBoxes(relativeBox, objRelativeBox):
         if y1 < y2:
             inter = (x2 - x1) * (y2 - y1)
         else:
-            inter = 0   
-    
-    #calculate the union 
+            inter = 0
+
+            # calculate the union
     groundtruth_area = (xg_max - xg_min) * (yg_max - yg_min)
     predicted_area = (xp_max - xp_min) * (yp_max - yp_min)
     union = (groundtruth_area + predicted_area) - inter
-    
-    #calculate_iou
+
+    # calculate_iou
     iou = inter / union
     return 1 - iou

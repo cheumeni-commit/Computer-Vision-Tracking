@@ -2,7 +2,7 @@
 from copy import deepcopy
 
 
-class HeightEstimator():
+class HeightEstimator:
     """
     Classe HeightEstimator permet le calcul de la hauteur d'un colis suivi.
 
@@ -24,12 +24,11 @@ class HeightEstimator():
         self.xRangeCanEstimate = (0.4, 0.65)
         self.xcenter = 0.33333333
         self.cameraHeight = 2500
-        
 
     def estimateHeight(self, parcels):
         for parcel in parcels:
             xmin = parcel.relativeBox[1]
-            if xmin > self.xRangeCanEstimate[0] and xmin < self.xRangeCanEstimate[1]:
+            if self.xRangeCanEstimate[0] < xmin < self.xRangeCanEstimate[1]:
                 if parcel.heightRef == 0 and parcel.timeHoldingToEstimateHeight == 0:
                     parcel.previousRelativeBox = deepcopy(parcel.relativeBox)
                     parcel.timeHoldingToEstimateHeight += 1
@@ -41,9 +40,8 @@ class HeightEstimator():
                         self._computeHeight(parcel)
                     parcel.timeHoldingToEstimateHeight += 1
 
-
-    def estimateHeightLight(self, parcel):        
-        if parcel.relativeBox[1] > 0.05 and parcel.relativeBox[1] < 0.45:
+    def estimateHeightLight(self, parcel):
+        if 0.05 < parcel.relativeBox[1] < 0.45:
             if parcel.previousRelativeBox[0] == 0:
                 parcel.previousRelativeBox = deepcopy(parcel.relativeBox)
             else:
@@ -53,7 +51,6 @@ class HeightEstimator():
                     parcel.timeHoldingToEstimateHeight = 1
                 else:
                     parcel.timeHoldingToEstimateHeight += 1
-                    
 
     def _computeHeight(self, parcel):
         xmin1 = parcel.previousRelativeBox[1]
@@ -61,10 +58,11 @@ class HeightEstimator():
         xmin2 = parcel.relativeBox[1]
         xmax2 = parcel.relativeBox[3]
         coef = ((xmax1 - xmin1) - (xmax2 - xmin2)) / ((0.5 - xmin1) - (0.5 - xmin2))
-        #print('---H----')
-        #print(xmin1,xmax1,xmin2,xmax2,coef)
+        # print('---H----')
+        # print(xmin1,xmax1,xmin2,xmax2,coef)
         parcel.heightRef = coef * self.cameraHeight
-        #print(parcel.height, ' vs ', parcel.heightRef)
-        #print(parcel.height,xmin1,xmax1)
-        
+        # print(parcel.height, ' vs ', parcel.heightRef)
+        # print(parcel.height,xmin1,xmax1)
+
+
 heightEstimator = HeightEstimator()
