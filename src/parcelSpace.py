@@ -6,7 +6,7 @@ import traceback
 import cv2
 import numpy as np
 
-from src.config.directories import directories as dirs
+from config.directories import directories as dirs
 
 class TrackerSpace():
     """

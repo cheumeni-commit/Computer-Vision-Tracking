@@ -22,20 +22,22 @@ class KalmanFilterPredictor(object):
             kalmanFilter: l'objet KalmanFilter d'open CV.
         """
         self.fps = fps
-        
-        dt = 1/self.fps #time between 2 acquisitions
-        
-        self.kalmanFilter = cv2.KalmanFilter(7,4) #7 dynamic parameters (ymin,xmin,ymax,xmax,vy, vxmin, vxmax) and 4 measured parameters (the 4 coordinates)
-        self.kalmanFilter.measurementMatrix = np.array([[1,0,0,0,0,0,0], [0,1,0,0,0,0,0],[0,0,1,0,0,0,0],\
-                                                         [0,0,0,1,0,0,0]], np.float32)
-        
-        self.kalmanFilter.transitionMatrix = np.array([[1,0,0,0,dt,0,0], [0,1,0,0,0,dt,0],[0,0,1,0,dt,0,0],\
-                                                       [0,0,0,1,0,0,dt], [0,0,0,0,1,0,0],[0,0,0,0,0,1,0],\
-                                                       [0,0,0,0,0,0,1]], np.float32)
-        
-        self.kalmanFilter.measurementNoiseCov = np.array([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]],\
+
+        dt = 1 / self.fps  # time between 2 acquisitions
+
+        self.kalmanFilter = cv2.KalmanFilter(7,
+                                             4)  # 7 dynamic parameters (ymin,xmin,ymax,xmax,vy, vxmin, vxmax) and 4
+        # measured parameters (the 4 coordinates)
+        self.kalmanFilter.measurementMatrix = np.array(
+            [[1, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0]], np.float32)
+
+        self.kalmanFilter.transitionMatrix = np.array(
+            [[1, 0, 0, 0, dt, 0, 0], [0, 1, 0, 0, 0, dt, 0], [0, 0, 1, 0, dt, 0, 0],
+             [0, 0, 0, 1, 0, 0, dt], [0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1, 0],
+             [0, 0, 0, 0, 0, 0, 1]], np.float32)
+
+        self.kalmanFilter.measurementNoiseCov = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
                                                          np.float32)
-    
 
     def formatMeasurements(self, parcel):
         """
@@ -47,8 +49,7 @@ class KalmanFilterPredictor(object):
         Returns:
             La relativeBox d'un Parcel en matrice numpy.
         """
-        return np.array(parcel.relativeBox, dtype=np.float32).reshape((4,1))
-    
+        return np.array(parcel.relativeBox, dtype=np.float32).reshape((4, 1))
 
     def setPreviousState(self, parcel):
         """
@@ -59,7 +60,7 @@ class KalmanFilterPredictor(object):
             parcel: l'objet parcel à prédire.
         """
         vxmax, vy = parcel.speed
-        
+
         if round(parcel.relativeBox[1], 2) == 0:
             vxmin = 0
         else:
@@ -67,10 +68,10 @@ class KalmanFilterPredictor(object):
 
         if max(parcel.nextRelativeBox) == 0:
             ymin, xmin, ymax, xmax = parcel.relativeBox
-            self.kalmanFilter.statePost = np.array([[ymin],[xmin],[ymax],[xmax],[vy],[vxmin],[vxmax]], np.float32)
+            self.kalmanFilter.statePost = np.array([[ymin], [xmin], [ymax], [xmax], [vy], [vxmin], [vxmax]], np.float32)
         else:
             ymin, xmin, ymax, xmax = parcel.nextRelativeBox
-            self.kalmanFilter.statePre = np.array([[ymin],[xmin],[ymax],[xmax],[vy],[vxmin],[vxmax]], np.float32)
+            self.kalmanFilter.statePre = np.array([[ymin], [xmin], [ymax], [xmax], [vy], [vxmin], [vxmax]], np.float32)
 
     def update(self, parcel, measurements):
         """
@@ -83,21 +84,21 @@ class KalmanFilterPredictor(object):
         """
         if max(parcel.nextRelativeBox) != 0:
             self.kalmanFilter.correct(measurements)
-            
+
         predicted = self.kalmanFilter.predict()
 
-        ymin_next = float(predicted[0,0])
-        xmin_next = float(predicted[1,0])
-        ymax_next = float(predicted[2,0])
-        xmax_next = float(predicted[3,0])
-        vy_next = float(predicted[4,0])
-        #vxmin_next = float(predicted[5,0])
-        vxmax_next = float(predicted[6,0])
-        
+        ymin_next = float(predicted[0, 0])
+        xmin_next = float(predicted[1, 0])
+        ymax_next = float(predicted[2, 0])
+        xmax_next = float(predicted[3, 0])
+        vy_next = float(predicted[4, 0])
+        # vxmin_next = float(predicted[5,0])
+        vxmax_next = float(predicted[6, 0])
+
         parcel.nextRelativeBox = (ymin_next, xmin_next, ymax_next, xmax_next) + tuple()
-        parcel.speed  = (vxmax_next, vy_next) + tuple() 
-        parcel.nextCenter = ((xmin_next + xmax_next) / 2 , (ymin_next + ymax_next) / 2) + tuple()
-        
+        parcel.speed = (vxmax_next, vy_next) + tuple()
+        parcel.nextCenter = ((xmin_next + xmax_next) / 2, (ymin_next + ymax_next) / 2) + tuple()
+
     def updateStates(self, parcels):
         """
         Parcourt la liste des Parcels à prédire et appel les fonctions

@@ -4,31 +4,33 @@
     Classe Parcel.
 """
 
+import pickle
+
+__all__ = ['Parcel','parcelListFromPickle','parcelListToPickle']
 
 class Parcel():
     """
-    Objet Parcel permet de mettre à jour l'état des Parcel tracker.
+    Objet Parcel permettant de réaliser le tracking. Il contient un grand nombre
+    d'attribut permettant une gestion aisé du tracking et du partage d'informations
+    inter-modules.
 
     Todo:
         Créer un module externe du Paquet parcel. 
     """
 
-    def __init__(self, parcelID, parcelColor, creationTime, relativeBox = (0,0,0,0), 
-                 nextRelativeBox= (0,0,0,0), parcelBarcode = None, 
-                 destinationBay = None, postCode = None, destinationType = None, 
-                 destinationPosition = (0,0), dimensionInit = (None, None, None),
-                 isPickable = False):
+    def __init__(self, parcelID, parcelColor, creationTime, relativeBox = (0,0,0,0), nextRelativeBox= (0,0,0,0),
+                parcelBarcode = None, destinationBay = None, postCode = None, destinationType = None, 
+                destinationPosition = (0,0), dimensionInit = (None, None, None), isPickable = False):
         
         """Un paquet à suivre.
         
-        Attributes:
-        
+        Attributes: 
             Attributs immuables crees a l'init :
 
             parcelID                ID UPU de l'objet
             type                    Type de colis, actuellement un seul type.
             creationTime            Timestamp de creation de l'objet.
-            trackingColor           Couleur pour l'affichage visuel, couleur supportes : 
+            trackingColor           Couleur pour l'affichage visuel, couleur supportes : https://www.w3schools.com/colors/colors_names.asp
             
             Attributs immuables crees a l'init, non indispensable :
 
@@ -36,28 +38,21 @@ class Parcel():
             destinationBay          Baie de destination. None si pas d'infos.
             postCode                Code Postal. None si pas d'infos.
             destinationType         Type de destination. None si pas d'infos.
-            destinationPosition     Intervalle xmin, xmax reelle de la travee de destination. 
-                                    None si pas d'infos.
-            dimensionInit           Dimension de l'objet à l'init : longueur, largeur, hauteur. 
-                                    None si pas d'infos.
-            isPickable              Indique si l'objet est prenable par un operateur du systeme CARS.
-                                    False si pas d'infos.
+            destinationPosition     Intervalle xmin, xmax reelle de la travee de destination. None si pas d'infos.
+            dimensionInit           Dimension de l'objet à l'init : longueur, largeur, hauteur. None si pas d'infos.
+            isPickable              Indique si l'objet est prenable par un operateur du systeme CARS. False si pas d'infos.
 
-            Attributs de position mutable uniquement par le tracking :
+            Attributs de position modifiable uniquement par le tracking :
             
             center                  Position (x,y) relative du centre du colis sur la camera courante.
-            nextCenter              Position (x,y) predite relative du centre du colis sur la camera
-                                    courante.
+            nextCenter              Position (x,y) predite relative du centre du colis sur la camera courante.
             relativeBox             Coordonnees relatives a l'image de la bounding box de l'objet.
-            nextRelativeBox         Coordonnees predites relatives a l'image de la bounding box de
-                                    l'objet.
-            xPosition               Position (xmin, xmax) en millimetre du colis par rapport au plan de
-                                    tri.
-            yPosition               Position (ymin, ymax) en millimetre  du colis par rapport au plan de
-                                    tri.
-            projectedBox            Position reelle de l'objet projetée dans le referentiel image.
+            nextRelativeBox         Coordonnees predites relatives a l'image de la bounding box de l'objet.
+            xPosition               Position (xmin,xmax) en millimetre du colis par rapport au plan de tri.
+            yPosition               Position (ymin,ymax) en millimetre  du colis par rapport au plan de tri.
+            projectedBox            Position reele de l'objet projete sur dans le referentiel image.
 
-            Attributs de l'objet mutable uniquement par le tracking : 
+            Attributs de l'objet modifiable uniquement par le tracking : 
             
             height                  Hauteur de l'objet.
             area                    Surface de l'objet.
@@ -65,40 +60,34 @@ class Parcel():
 
             Attributs de tracking modifiable par le tracking : 
 
-            lastSeenOnCameraID      Id de la camera l'ayant detecté pour la derniere fois. 
+            lastSeenOnCameraID      Id de la camera l'ayant detecte pour la derniere fois. 
             lastTimeDetected        Derniere timestamp ou l'objet est detecte.
             speed                   Vitesse.
-            numberOfTimesUndetected   Nombre de fois non detecte. 
-                                      (Modifiable par l'interpreteur seulement en cas de panne.)
+            numberOfTimesUndetected   Nombre de fois non detecte. (Modifiable par l'interpreteur seulement en cas de panne.)
 
             Attributs d'etat de l'objet modifiable uniquement par le tracking :
 
             isTracked               Indique si l'objet est suivi par detection ou non.
-            isInterpolated          Indique si les positions ont ete detectees ou interpolees.
+            isInterpolated          Indique si les positions ont ete detecte ou interpole.
             isSorted                Indique si l'objet a ete trie, sorti dans la bonne travee.
-            isRemoved               Indique si l'objet a ete sorti du convoyeur ou perdu.
+            isRemoved               Indique si l'objet a ete sorti du convoyeur ou  perdu.
             isOutcoming             Indique si l'objet est à venir dans un champ de camera.
             isExiting               Indique si l'objet est sorti du champ de la camera.
 
             Attributs d'informations de references
-            
-            heightRef                       Hauteur de reference calculee par le tracking.
+            heightRef                       Hauteur de reference calcule par le tracking.
             widthRef                        Longueur et largeur de reference calcule par le tracking.
             featureRef                      Caracteristique de reference.
-            previousRelativeBox             Position du colis precedent pour le calcul de hauteur de
-                                            reference.
-            timeHoldingToEstimateHeight     Parametre pour le calcul de la hauteur de reference.
+            previousRelativeBox             Position du colis precedente pour le calcul de hauteur de reference.
+            timeHoldingToEstimateHeight     Parametre pour le calcul de ma hauteur de reference.
 
             Attributs d'informations pour le peer 2 peer tracker
-            
-            parcelsToParcelsDistance        La distance en millimetre entre le point xmin, ymin de ces
-                                            parcels et
+            parcelsToParcelsDistance        La distance en millimetre entre le point xmin,ymin de ces parcels et
                                             Le point xmin,ymin de l'objet Parcel courant.
-                                            La forme de stockage est sous forme de tuple (parcelID, dx,dy)     
-            p2p_xyPosition                  Position reelle determinee par le peer 2 peer tracker.
+                                            La forme de stockage est sous forme de tuple (parcelID,dx,dy)     
+            p2p_xyPosition                  Position reelle determine par le peer 2 peer tracker.
 
         """
-        
         ### Info global immuable :
         self.parcelID = parcelID #ID UPU
         self.type = 'Parcel' # un type de colis géré
@@ -117,10 +106,8 @@ class Parcel():
         ### Info position
         self.relativeBox = relativeBox
         self.nextRelativeBox = nextRelativeBox
-        self.center = ((relativeBox[3] + relativeBox[1]) / 2,\
-                       (relativeBox[2] + relativeBox[0]) / 2)
-        self.nextCenter = ((nextRelativeBox[3] + nextRelativeBox[1]) / 2,\
-                           (nextRelativeBox[2] + nextRelativeBox[0]) / 2)
+        self.center = ((relativeBox[3] + relativeBox[1]) / 2, (relativeBox[2] + relativeBox[0]) / 2)
+        self.nextCenter = ((nextRelativeBox[3] + nextRelativeBox[1]) / 2, (nextRelativeBox[2] + nextRelativeBox[0]) / 2)
 
 
         self.xPosition = (0,0) 
@@ -161,7 +148,6 @@ class Parcel():
         #   La forme de stockage est sous forme de tuple (parcelID,dx,dy). ###
         self.parcelsToParcelsDistance = []
         self.p2p_xyPosition = (0,0,0,0)
-        
 
     def getColor(self):
         """
@@ -209,11 +195,34 @@ class Parcel():
             La string désignant le nom du Parcel.
         """
         s = self.parcelID.split('_')
+        #return [self.type, s[0] + '-' + s[-1]]
         return [s[0] + '-' + s[-1]]
     
     def setWidthRef(self):
-        
         x = self.xPosition[1] - self.xPosition[0]
         y = self.yPosition[1] - self.yPosition[0]
         self.widthRef = (x, y)
-        
+
+def parcelListToPickle(parcels):
+    """
+    Dump une liste de Parcel en pickle binaire.
+    
+    Args:
+        parcels: la liste des Parcel a dumpé.
+
+    Returns:
+        Le pickle binaire de la liste de Parcel.
+    """
+    return pickle.dumps(parcels)
+
+def parcelListFromPickle(pickleData):
+    """
+    Importe une liste de Parcel d'un pickle binaire.
+    
+    Args:
+        pickleData: des données de Parcels en pickle.
+
+    Returns:
+        La liste de Parcel issu du pickle.
+    """
+    return pickle.loads(pickleData)
