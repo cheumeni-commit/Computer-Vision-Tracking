@@ -385,7 +385,7 @@ class ParcelTracker():
 
         # print('Full timing update tracker : ', (time.perf_counter() - t) * 1000)
 
-        return self.trackedParcels + exitingParcels + removedParcels + self.incomingParcels, objects, numObj
+        return self.trackedParcels + exitingParcels + removedParcels + self.incomingParcels, objects, numObj, self.incomingParcels
 
     def decisionFonction(self):
 

@@ -161,12 +161,13 @@ def parcelDetectionWorker(imageQueue, incomingQ):
         incParcel = None
         while not incomingQ.empty():
             incParcel = incomingQ.get()
+           
 
         # tracker 1
         parcelS_1 = parcelTracker1.trackerSpace.beltBoundaries
         parcelS_2 = parcelTracker1.trackerSpace.beltBoundaries
         print("beltboundaries", parcelS_1)
-        parcels, objects, numObj = parcelTracker1.update(image_cam1, [incParcel], 1)
+        parcels, objects, numObj, inc = parcelTracker1.update(image_cam1, [incParcel], 1)
         # print("object", objects)
         print("Parcels", parcels)
         image = cv2.cvtColor(image_cam1, cv2.COLOR_BGR2RGB)
@@ -187,7 +188,7 @@ def parcelDetectionWorker(imageQueue, incomingQ):
 
         # tracker 2
         parcelsCopy = deepcopy(parcels)
-        parcels2, objects, numObj = parcelTracker2.update(image_cam2, parcelsCopy, 2)
+        parcels2, objects, numObj , inc = parcelTracker2.update(image_cam2, parcelsCopy, 2)
         
         image2 = cv2.cvtColor(image_cam2, cv2.COLOR_BGR2RGB)
         # affichage limites du convoyeur sous la deuxieme camera
